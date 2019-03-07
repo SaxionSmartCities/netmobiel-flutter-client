@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 
-String url = "https://youtube.com/";
+import 'dart:io';
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+String url = "https://htbm.smartenschede.nl/";
 
 void main() => runApp(new MyApp());
 
@@ -39,6 +42,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
 
   final webView = FlutterWebviewPlugin();
   TextEditingController controller = TextEditingController(text: url);
@@ -51,6 +55,41 @@ class _HomeState extends State<Home> {
     controller.addListener(() {
       url = controller.text;
     });
+
+    // Set the GCM listener
+    firebaseCloudMessaging_Listeners();
+  }
+
+  void firebaseCloudMessaging_Listeners() {
+    print('firebase');
+    if (Platform.isIOS) iOS_Permission();
+
+    _firebaseMessaging.getToken().then((token){
+      print(token);
+    });
+
+    _firebaseMessaging.configure(
+      onMessage: (Map<String, dynamic> message) async {
+        print('on message $message');
+      },
+      onResume: (Map<String, dynamic> message) async {
+        print('on resume $message');
+      },
+      onLaunch: (Map<String, dynamic> message) async {
+        print('on launch $message');
+      },
+    );
+  }
+
+  void iOS_Permission() {
+    _firebaseMessaging.requestNotificationPermissions(
+        IosNotificationSettings(sound: true, badge: true, alert: true)
+    );
+    _firebaseMessaging.onIosSettingsRegistered
+        .listen((IosNotificationSettings settings)
+    {
+      print("Settings registered: $settings");
+    });
   }
 
   @override
@@ -60,17 +99,8 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  void _sendNotification() {
+    print("TODO: Send notification");
   }
 
   @override
@@ -99,7 +129,7 @@ class _HomeState extends State<Home> {
         ),
       ),
       floatingActionButton: new FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: _sendNotification,
         tooltip: 'Increment',
         child: new Icon(Icons.notifications),
       ), // This trailing comma makes auto-formatting nicer for build methods.
