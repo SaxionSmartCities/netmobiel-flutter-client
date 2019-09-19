@@ -440,7 +440,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = nl.smartenschede.netmobiel.frontendApp;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.netmobiel.frontendApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -464,7 +464,7 @@
 					"$(inherited)",
 					"$(PROJECT_DIR)/Flutter",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = nl.smartenschede.netmobiel.frontendApp;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.netmobiel.frontendApp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				VERSIONING_SYSTEM = "apple-generic";
 			};
