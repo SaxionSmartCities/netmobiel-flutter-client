@@ -21,6 +21,7 @@ class MyApp extends StatelessWidget {
     FlutterStatusbarcolor.setStatusBarWhiteForeground(true);
     FlutterStatusbarcolor.setNavigationBarWhiteForeground(true);
     return new MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: new ThemeData(
         primarySwatch: Colors.blue,
