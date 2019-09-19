@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
-
 String url = "https://app.netmobiel.eu";
 
 void main() {
@@ -42,6 +41,8 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   final flutterWebviewPlugin = new FlutterWebviewPlugin();
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
+  String url = "";
+
 
   @override
   void initState() {
@@ -53,6 +54,9 @@ class _HomeState extends State<Home> {
 
     _firebaseMessaging.getToken().then((token){
       print(token);
+      setState(() {
+        url = "https://app.netmobiel.eu?fcm=$token";
+      });
     });
 
     _firebaseMessaging.configure(
@@ -99,14 +103,17 @@ class _HomeState extends State<Home> {
       SafeArea(
         minimum: const EdgeInsets.all(0.0),
         child:
-          WebviewScaffold(
-            userAgent: 'Flutter',
-            url: url,
-            withJavascript: true,
-            withLocalStorage: true,
-            withZoom: false,
-            scrollBar: false,
-          ),
+            url == "" ?
+            Container(color: Color.fromRGBO(51,137,150, 1.0))
+                :
+            WebviewScaffold(
+              userAgent: 'Flutter',
+              url: url,
+              withJavascript: true,
+              withLocalStorage: true,
+              withZoom: false,
+              scrollBar: false,
+            ),
       );
   }
 }
