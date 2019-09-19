@@ -1,5 +1,25 @@
 # netmobiel-flutter-client
 
+# Set up Android packaging
+
+Create a keystore for building the APK as follows:
+```
+keytool -genkey -v -keystore ~/key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias key
+```
+
+Update the key.properties file (in ./frontend_app/android/) as follows:
+```
+storePassword=<password from previous step>
+keyPassword=<password from previous step>
+keyAlias=key
+storeFile=<location of the key store file, such as /Users/<user name>/key.jks>
+```
+
+From then on every Android build will produce a signed apk.
+
+Also see: https://flutter.dev/docs/deployment/android
+
+
 # Set up cloud messaging
 
 See:
