@@ -114,6 +114,7 @@ class _HomeState extends State<Home> {
               withLocalStorage: true,
               withZoom: false,
               scrollBar: false,
+              withOverviewMode: false,
             ),
       );
   }
