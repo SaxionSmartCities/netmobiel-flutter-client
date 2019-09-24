@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "119510705158",
+    "firebase_url": "https://netmobiel-push.firebaseio.com",
+    "project_id": "netmobiel-push",
+    "storage_bucket": "netmobiel-push.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:119510705158:android:7c4a4cbb2b10a9c4688f87",
+        "android_client_info": {
+          "package_name": "eu.netmobiel.frontendapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "119510705158-slk85pna9hhqf19481a4afsipprpr5ua.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsvRU4TKWO-dHYkmZYowm3ptD2y7Szojc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "119510705158-slk85pna9hhqf19481a4afsipprpr5ua.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "119510705158-auh7kbc1uot14hsd1q0qek4daa8h4v8n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "eu.netmobiel.frontendApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

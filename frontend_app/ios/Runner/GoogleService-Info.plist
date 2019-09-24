@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>119510705158-auh7kbc1uot14hsd1q0qek4daa8h4v8n.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.119510705158-auh7kbc1uot14hsd1q0qek4daa8h4v8n</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAaY6jNtGfjbfgS9Mrozm97KHvd-APxtsY</string>
+	<key>GCM_SENDER_ID</key>
+	<string>119510705158</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>eu.netmobiel.frontendApp</string>
+	<key>PROJECT_ID</key>
+	<string>netmobiel-push</string>
+	<key>STORAGE_BUCKET</key>
+	<string>netmobiel-push.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:119510705158:ios:d18ce081674f4107688f87</string>
+	<key>DATABASE_URL</key>
+	<string>https://netmobiel-push.firebaseio.com</string>
+</dict>
+</plist>
