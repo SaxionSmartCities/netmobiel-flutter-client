@@ -13,7 +13,6 @@ void main() {
   runApp(new MyApp());
 }
 
-
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -43,21 +42,17 @@ class _HomeState extends State<Home> {
   Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   final flutterWebviewPlugin = new FlutterWebviewPlugin();
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
-  String url = "";
+  String _fcmToken = "";
+  String _baseUrl = "https://app.netmobiel.eu";
+  String _url = "";
   StreamSubscription<WebViewStateChanged> _onStateChanged;
   final telephonePrefix = 'tel:';
-  Future<bool> _useAcceptance;
-
+  bool _useAcceptance = false;
 
   @override
   void initState() {
     super.initState();
     firebaseCloudMessaging_Listeners();
-    _useAcceptance = _prefs.then((SharedPreferences prefs) {
-      var tmp = prefs.getBool('enabled_acceptance') ?? false;
-      print('ACC: $tmp');
-      return (prefs.getBool('enabled_acceptance') ?? false);
-    });
   }
   void firebaseCloudMessaging_Listeners() {
     if (Platform.isIOS) iOS_Permission();
@@ -65,7 +60,8 @@ class _HomeState extends State<Home> {
     _firebaseMessaging.getToken().then((token){
       print(token);
       setState(() {
-        url = "https://app.netmobiel.eu?fcm=$token";
+        _url = "$_baseUrl?fcm=$token";
+        _fcmToken = token;
       });
     });
 
@@ -118,17 +114,34 @@ class _HomeState extends State<Home> {
         }
       }
     });
-
+    _prefs.then((SharedPreferences prefs) {
+      var tmp = prefs.getBool('enabled_acceptance') ?? false;
+      print('ACC: $tmp');
+      if (tmp != _useAcceptance) {
+        setState(() {
+          _useAcceptance = tmp;
+          _baseUrl = _useAcceptance ?
+            "https://app.acc.netmobiel.eu" :
+            "https://app.netmobiel.eu";
+          _url = _fcmToken.isNotEmpty ? "$_baseUrl?fcm=$_fcmToken" : _baseUrl;
+        });
+      }
+    });
+    if (_useAcceptance) {
+      FlutterStatusbarcolor.setStatusBarColor(Color.fromRGBO(255,133,0,1.0));
+    } else {
+      FlutterStatusbarcolor.setStatusBarColor(Color.fromRGBO(51,137,150,1.0));
+    }
     return
       SafeArea(
         minimum: const EdgeInsets.all(0.0),
         child:
-            url == "" ?
+            _url == "" ?
             Container(color: Color.fromRGBO(51,137,150, 1.0))
                 :
             WebviewScaffold(
               userAgent: 'Flutter',
-              url: url,
+              url: _url,
               invalidUrlRegex: '^$telephonePrefix',
               withJavascript: true,
               withLocalStorage: true,
