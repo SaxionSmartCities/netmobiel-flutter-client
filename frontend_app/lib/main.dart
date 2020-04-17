@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 String url = "https://app.netmobiel.eu";
 
@@ -39,17 +40,24 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
   final flutterWebviewPlugin = new FlutterWebviewPlugin();
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   String url = "";
   StreamSubscription<WebViewStateChanged> _onStateChanged;
   final telephonePrefix = 'tel:';
+  Future<bool> _useAcceptance;
 
 
   @override
   void initState() {
     super.initState();
     firebaseCloudMessaging_Listeners();
+    _useAcceptance = _prefs.then((SharedPreferences prefs) {
+      var tmp = prefs.getBool('enabled_acceptance') ?? false;
+      print('ACC: $tmp');
+      return (prefs.getBool('enabled_acceptance') ?? false);
+    });
   }
   void firebaseCloudMessaging_Listeners() {
     if (Platform.isIOS) iOS_Permission();
