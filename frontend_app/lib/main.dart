@@ -1,16 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
+import 'package:url_launcher/url_launcher.dart';
 String url = "https://app.netmobiel.eu";
 
 void main() {
-  SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown])
-      .then((_) => runApp(new MyApp()));
+  runApp(new MyApp());
 }
 
 
@@ -43,6 +42,8 @@ class _HomeState extends State<Home> {
   final flutterWebviewPlugin = new FlutterWebviewPlugin();
   FirebaseMessaging _firebaseMessaging = FirebaseMessaging();
   String url = "";
+  StreamSubscription<WebViewStateChanged> _onStateChanged;
+  final telephonePrefix = 'tel:';
 
 
   @override
@@ -100,6 +101,16 @@ class _HomeState extends State<Home> {
             .height,
       ),
     );
+    _onStateChanged = flutterWebviewPlugin.onStateChanged.listen((WebViewStateChanged state) async {
+      if (mounted) {
+        if (state.url.startsWith(telephonePrefix) && state.type == WebViewState.abortLoad) {
+          if (await canLaunch(state.url)) {
+            await launch(state.url);
+          }
+        }
+      }
+    });
+
     return
       SafeArea(
         minimum: const EdgeInsets.all(0.0),
@@ -110,6 +121,7 @@ class _HomeState extends State<Home> {
             WebviewScaffold(
               userAgent: 'Flutter',
               url: url,
+              invalidUrlRegex: '^$telephonePrefix',
               withJavascript: true,
               withLocalStorage: true,
               withZoom: false,
