@@ -3,16 +3,13 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
 import 'package:url_launcher/url_launcher.dart';
 String url = "https://app.netmobiel.eu";
 
 void main() {
-  SystemChrome.setPreferredOrientations(
-      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown])
-      .then((_) => runApp(new MyApp()));
+  runApp(new MyApp());
 }
 
 
