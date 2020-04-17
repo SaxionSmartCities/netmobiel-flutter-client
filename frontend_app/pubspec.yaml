@@ -21,6 +21,7 @@ dependencies:
   flutter_webview_plugin: ^0.3.11
   firebase_messaging: ^5.1.6
   url_launcher: ^5.1.6
+  shared_preferences: ^0.5.6+3
 
 dev_dependencies:
   flutter_test:
