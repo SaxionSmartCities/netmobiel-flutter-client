@@ -7,6 +7,8 @@ import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
 import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:device_info/device_info.dart';
+
 String url = "https://app.netmobiel.eu";
 
 void main() {
@@ -16,7 +18,7 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    FlutterStatusbarcolor.setStatusBarColor(Color.fromRGBO(51,137,150, 1.0));
+    FlutterStatusbarcolor.setStatusBarColor(Color.fromRGBO(51, 137, 150, 1.0));
     FlutterStatusbarcolor.setStatusBarWhiteForeground(true);
     FlutterStatusbarcolor.setNavigationBarWhiteForeground(true);
     return new MaterialApp(
@@ -33,7 +35,6 @@ class MyApp extends StatelessWidget {
 }
 
 class Home extends StatefulWidget {
-
   @override
   _HomeState createState() => new _HomeState();
 }
@@ -48,16 +49,47 @@ class _HomeState extends State<Home> {
   StreamSubscription<WebViewStateChanged> _onStateChanged;
   final telephonePrefix = 'tel:';
   bool _useAcceptance = false;
+  String _userAgent = 'Flutter,';
 
   @override
   void initState() {
     super.initState();
     firebaseCloudMessaging_Listeners();
+    buildUserAgentString();
   }
+
+  void buildUserAgentString() async {
+    if (Platform.isAndroid) {
+      var androidInfo = await DeviceInfoPlugin().androidInfo;
+      var release = androidInfo.version.release;
+      var sdkInt = androidInfo.version.sdkInt;
+      var manufacturer = androidInfo.manufacturer;
+      var model = androidInfo.model;
+      print('Android $release (SDK $sdkInt), $manufacturer $model');
+      setState(() {
+        _userAgent =
+            'Flutter - Android $release (SDK $sdkInt), $manufacturer $model';
+      });
+      // Android 9 (SDK 28), Xiaomi Redmi Note 7
+    }
+    if (Platform.isIOS) {
+      var iosInfo = await DeviceInfoPlugin().iosInfo;
+      var systemName = iosInfo.systemName;
+      var version = iosInfo.systemVersion;
+      var name = iosInfo.name;
+      var model = iosInfo.model;
+      print('$systemName $version, $name $model');
+      // iOS 13.1, iPhone 11 Pro Max iPhone
+      setState(() {
+        _userAgent = 'Flutter - $systemName $version, $name $model';
+      });
+    }
+  }
+
   void firebaseCloudMessaging_Listeners() {
     if (Platform.isIOS) iOS_Permission();
 
-    _firebaseMessaging.getToken().then((token){
+    _firebaseMessaging.getToken().then((token) {
       print(token);
       setState(() {
         _url = "$_baseUrl?fcm=$token";
@@ -80,11 +112,9 @@ class _HomeState extends State<Home> {
 
   void iOS_Permission() {
     _firebaseMessaging.requestNotificationPermissions(
-        IosNotificationSettings(sound: true, badge: true, alert: true)
-    );
+        IosNotificationSettings(sound: true, badge: true, alert: true));
     _firebaseMessaging.onIosSettingsRegistered
-        .listen((IosNotificationSettings settings)
-    {
+        .listen((IosNotificationSettings settings) {
       print("Settings registered: $settings");
     });
   }
@@ -95,19 +125,15 @@ class _HomeState extends State<Home> {
       new Rect.fromLTWH(
         0.0,
         0.0,
-        MediaQuery
-            .of(context)
-            .size
-            .width,
-        MediaQuery
-            .of(context)
-            .size
-            .height,
+        MediaQuery.of(context).size.width,
+        MediaQuery.of(context).size.height,
       ),
     );
-    _onStateChanged = flutterWebviewPlugin.onStateChanged.listen((WebViewStateChanged state) async {
+    _onStateChanged = flutterWebviewPlugin.onStateChanged
+        .listen((WebViewStateChanged state) async {
       if (mounted) {
-        if (state.url.startsWith(telephonePrefix) && state.type == WebViewState.abortLoad) {
+        if (state.url.startsWith(telephonePrefix) &&
+            state.type == WebViewState.abortLoad) {
           if (await canLaunch(state.url)) {
             await launch(state.url);
           }
@@ -120,28 +146,27 @@ class _HomeState extends State<Home> {
       if (tmp != _useAcceptance) {
         setState(() {
           _useAcceptance = tmp;
-          _baseUrl = _useAcceptance ?
-            "https://app.acc.netmobiel.eu" :
-            "https://app.netmobiel.eu";
+          _baseUrl = _useAcceptance
+              ? "https://app.acc.netmobiel.eu"
+              : "https://app.netmobiel.eu";
           _url = _fcmToken.isNotEmpty ? "$_baseUrl?fcm=$_fcmToken" : _baseUrl;
         });
       }
     });
     if (_useAcceptance) {
-      FlutterStatusbarcolor.setStatusBarColor(Color.fromRGBO(255,133,0,1.0));
+      FlutterStatusbarcolor.setStatusBarColor(Color.fromRGBO(255, 133, 0, 1.0));
     } else {
-      FlutterStatusbarcolor.setStatusBarColor(Color.fromRGBO(51,137,150,1.0));
+      FlutterStatusbarcolor.setStatusBarColor(
+          Color.fromRGBO(51, 137, 150, 1.0));
     }
-    return
-      SafeArea(
-        minimum: const EdgeInsets.all(0.0),
-        child:
-            _url == "" ?
-            Container(color: Color.fromRGBO(51,137,150, 1.0))
-                :
-            WebviewScaffold(
-              userAgent: 'Flutter',
+    return SafeArea(
+      minimum: const EdgeInsets.all(0.0),
+      child: _url == ""
+          ? Container(color: Color.fromRGBO(51, 137, 150, 1.0))
+          : WebviewScaffold(
+              userAgent: _userAgent,
               url: _url,
+              debuggingEnabled: true,
               invalidUrlRegex: '^$telephonePrefix',
               withJavascript: true,
               withLocalStorage: true,
@@ -149,6 +174,6 @@ class _HomeState extends State<Home> {
               scrollBar: false,
               withOverviewMode: false,
             ),
-      );
+    );
   }
 }
