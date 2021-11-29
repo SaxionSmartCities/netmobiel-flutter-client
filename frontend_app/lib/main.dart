@@ -1,20 +1,19 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:device_info/device_info.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_webview_plugin/flutter_webview_plugin.dart';
-// import 'package:flutter_statusbarcolor/flutter_statusbarcolor.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:device_info/device_info.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
-String url = "https://app.netmobiel.eu";
+const String PROD_BASE_URL = "https://app.netmobiel.eu";
+const String DEV_BASE_URL = "http://192.168.0.15:8081/";
+const bool production = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  print("Firebase.initializeApp");
+  // print("Firebase.initializeApp");
   await Firebase.initializeApp(options: const FirebaseOptions(
       apiKey: "AIzaSyDsvRU4TKWO-dHYkmZYowm3ptD2y7Szojc",      // Auth / General Use
       appId: "1:119510705158:android:7c4a4cbb2b10a9c4688f87", // General Use
@@ -32,14 +31,14 @@ void main() async {
   );
   /// Update the iOS foreground notification presentation options to allow
   /// heads up notifications.
-  print("FirebaseMessaging.instance.requestPermission");
+  // print("FirebaseMessaging.instance.requestPermission");
   NotificationSettings settings = await FirebaseMessaging.instance
       .requestPermission(
     alert: true,
     badge: true,
     sound: true,
   );
-  print('User granted permission: ${settings.authorizationStatus}');
+  // print('User granted permission: ${settings.authorizationStatus}');
   runApp(const MyApp());
 }
 
@@ -49,9 +48,6 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    // FlutterStatusbarcolor.setStatusBarColor(Color.fromRGBO(51, 137, 150, 1.0));
-    // FlutterStatusbarcolor.setStatusBarWhiteForeground(true);
-    // FlutterStatusbarcolor.setNavigationBarWhiteForeground(true);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
@@ -73,24 +69,23 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final flutterWebviewPlugin = FlutterWebviewPlugin();
   String _fcmToken = "";
-  final String _baseUrl = "https://app.netmobiel.eu";
-  late StreamSubscription<WebViewStateChanged> _onStateChanged;
+  final String _baseUrl = production ? PROD_BASE_URL : DEV_BASE_URL;
+  // final String _baseUrl = DEV_BASE_URL;
   final telephonePrefix = 'tel:';
   String _userAgent = 'Flutter,';
 
   Future<void> setupInteractedMessage() async {
     // Get any messages which caused the application to open from
     // a terminated state.
-    print("setupInteractedMessage");
+    // print("setupInteractedMessage");
     try {
       RemoteMessage? initialMessage =
       await FirebaseMessaging.instance.getInitialMessage();
 
       // If the message also contains a data property with a "type" of "chat",
       // navigate to a chat screen
-      print("Got initial message");
+      // print("Got initial message");
       if (initialMessage != null) {
         handleInitialMessage(initialMessage);
       }
@@ -98,7 +93,7 @@ class _HomeState extends State<Home> {
       // Also handle any interaction when the app is in the background via a
       // Stream listener
       FirebaseMessaging.onMessageOpenedApp.listen(handleInitialMessage);
-      print("Setup listener initial message");
+      // print("Setup listener initial message");
     } catch (e) {
       print(e);
     }
@@ -107,6 +102,13 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    if (Platform.isAndroid) {
+      // https://pub.dev/packages/webview_flutter
+      // Use the Hybrid composition mode, the virtual display has keyboard problems
+      // like keyboard is not going away when the focus has gone away.
+      WebView.platform = SurfaceAndroidWebView();
+
+    }
     try {
       setupInteractedMessage().then((value) =>
           print("Interacted message setup done"));
@@ -115,9 +117,9 @@ class _HomeState extends State<Home> {
           .catchError((error) => print(error.toString()));
       // Any time the token refreshes, store this in the database too.
       FirebaseMessaging.instance.onTokenRefresh.listen(saveToken);
-      print("Setup token listener");
+      // print("Setup token listener");
       FirebaseMessaging.onMessage.listen(handleForegroundMessage);
-      print("Setup foreground listener");
+      // print("Setup foreground listener");
     } catch (e) {
       print(e);
     }
@@ -125,7 +127,7 @@ class _HomeState extends State<Home> {
   }
 
   void saveToken(String? token) {
-    print("Save token: ${token}");
+    // print("Save token: ${token}");
     token ??= "";
     setState(() {
       _fcmToken = token!;
@@ -158,7 +160,7 @@ class _HomeState extends State<Home> {
       var sdkInt = androidInfo.version.sdkInt;
       var manufacturer = androidInfo.manufacturer;
       var model = androidInfo.model;
-      print('Android $release (SDK $sdkInt), $manufacturer $model');
+      // print('Android $release (SDK $sdkInt), $manufacturer $model');
       setState(() {
         _userAgent =
             'Flutter - Android $release (SDK $sdkInt), $manufacturer $model';
@@ -170,7 +172,7 @@ class _HomeState extends State<Home> {
       var version = iosInfo.systemVersion;
       var name = iosInfo.name;
       var model = iosInfo.model;
-      print('$systemName $version, $name $model');
+      // print('$systemName $version, $name $model');
       // iOS 13.1, iPhone 11 Pro Max iPhone
       setState(() {
         _userAgent = 'Flutter - $systemName $version, $name $model';
@@ -180,44 +182,19 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    print("Build the widget: Resize webview");
-    flutterWebviewPlugin.resize(
-      Rect.fromLTWH(
-        0.0,
-        0.0,
-        MediaQuery.of(context).size.width,
-        MediaQuery.of(context).size.height,
-      ),
-    );
-    print("Listen to state changes");
-    _onStateChanged = flutterWebviewPlugin.onStateChanged
-        .listen((WebViewStateChanged state) async {
-      if (mounted) {
-        if (state.url.startsWith(telephonePrefix) &&
-            state.type == WebViewState.abortLoad) {
-          if (await canLaunch(state.url)) {
-            await launch(state.url);
-          }
-        }
-      }
-    });
-    print("Return the safe area");
-    final String _url = _fcmToken.isEmpty ? _baseUrl : "$_baseUrl?fcm=$_fcmToken";
-    return SafeArea(
-      minimum: const EdgeInsets.all(0.0),
-      child: _url == ""
-          ? Container(color: const Color.fromRGBO(51, 137, 150, 1.0))
-          : WebviewScaffold(
-              userAgent: _userAgent,
-              url: _url,
-              debuggingEnabled: true,
-              invalidUrlRegex: '^$telephonePrefix',
-              withJavascript: true,
-              withLocalStorage: true,
-              withZoom: false,
-              scrollBar: false,
-              withOverviewMode: false,
-            ),
+    final String url = _fcmToken.isEmpty ? _baseUrl : "$_baseUrl?fcm=$_fcmToken";
+    return Scaffold(
+        body: SafeArea(child: Column(children: [
+          Expanded(
+              child: WebView(
+                  initialUrl: url,
+                  javascriptMode: JavascriptMode.unrestricted,
+                  debuggingEnabled: true,
+                  userAgent: _userAgent,
+              )
+          )
+        ])
+      )
     );
   }
 }

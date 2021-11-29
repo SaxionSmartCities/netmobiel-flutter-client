@@ -7,7 +7,9 @@
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- usesCleartextTraffic is for easier testing on localhost, do not enable for production -->
     <application
+        android:usesCleartextTraffic="false"
         android:label="Netmobiel"
         android:icon="@mipmap/ic_launcher">
         <activity
