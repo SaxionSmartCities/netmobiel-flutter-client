@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -8,15 +7,13 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-const String PROD_BASE_URL = "https://app.netmobiel.eu";
-const String DEV_BASE_URL = "http://192.168.0.15:8081/";
+const String prodBaseUrl = 'https://app.netmobiel.eu';
+const String devBaseUrl = 'http://192.168.0.15:8081/';
 const bool production = false;
 
-/**
- * If you want to do something with background messages, enable the following
- * code. As a background service, it is not possible to interact with the
- * application.
- */
+/// If you want to do something with background messages, enable the following
+/// code. As a background service, it is not possible to interact with the
+/// application.
 
 // Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 //   // If you're going to use other Firebase services in the background, such as Firestore,
@@ -40,6 +37,7 @@ void main() async {
   /// Update the iOS foreground notification presentation options to allow
   /// heads up notifications.
   // print("FirebaseMessaging.instance.requestPermission");
+  // ignore: unused_local_variable
   NotificationSettings settings =
       await FirebaseMessaging.instance.requestPermission(
     alert: true,
@@ -63,7 +61,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       routes: {
-        "/": (_) => Home(),
+        '/': (_) => const Home(),
       },
     );
   }
@@ -77,12 +75,11 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  String _fcmToken = "";
+  String _fcmToken = '';
   WebViewController? _controller;
-  final String _baseUrl = production ? PROD_BASE_URL : DEV_BASE_URL;
+  final String _baseUrl = production ? prodBaseUrl : devBaseUrl;
   final telephonePrefix = 'tel:';
   String _userAgent = 'Flutter,';
-  bool _pageFinished = false;
 
   Future<void> setupInteractedMessage() async {
     // Get any messages which caused the application to open from
@@ -141,7 +138,7 @@ class _HomeState extends State<Home> {
 
   void saveToken(String? token) {
     // print("Save token: ${token}");
-    token ??= "";
+    token ??= '';
     setState(() {
       _fcmToken = token!;
     });
@@ -260,10 +257,6 @@ class _HomeState extends State<Home> {
       onWebViewCreated: (WebViewController ctrl) {
         // print('Webview is created');
         _controller = ctrl;
-      },
-      onPageFinished: (url) {
-        // print("Page loading is done");
-        _pageFinished = true;
       },
     );
     // print('UserAgent = ${view.userAgent}, url = ${view.initialUrl}');
