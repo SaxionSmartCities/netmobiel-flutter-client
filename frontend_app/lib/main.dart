@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:device_info/device_info.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -9,31 +10,38 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 const String PROD_BASE_URL = "https://app.netmobiel.eu";
 const String DEV_BASE_URL = "http://192.168.0.15:8081/";
-const bool production = true;
+const bool production = false;
+
+/**
+ * If you want to do something with background messages, enable the following
+ * code. As a background service, it is not possible to interact with the
+ * application.
+ */
+
+// Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+//   // If you're going to use other Firebase services in the background, such as Firestore,
+//   // make sure you call `initializeApp` before using other Firebase services.
+//   await Firebase.initializeApp();
+//
+//   if (message.data != null) {
+//     print('Background MSG Data: ${message.data}');
+//   }
+//   if (message.notification != null) {
+//     print('Background MSG Notification: ${message.notification!.title}: ${message.notification!.body}');
+//   }
+// }
 
 void main() async {
+  // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   WidgetsFlutterBinding.ensureInitialized();
   // print("Firebase.initializeApp");
-  await Firebase.initializeApp(options: const FirebaseOptions(
-      apiKey: "AIzaSyDsvRU4TKWO-dHYkmZYowm3ptD2y7Szojc",      // Auth / General Use
-      appId: "1:119510705158:android:7c4a4cbb2b10a9c4688f87", // General Use
-      projectId: "netmobiel-push",                            // General Use
-      // authDomain: "YOUR_APP.firebaseapp.com",              // Auth with popup/redirect
-      databaseURL: "https://netmobiel-push.firebaseio.com",   // Realtime Database
-      storageBucket: "netmobiel-push.appspot.com",            // Storage
-      messagingSenderId: "",                         // Cloud Messaging
-      // measurementId: "G-12345",                               // Analytics
-      androidClientId: "119510705158-slk85pna9hhqf19481a4afsipprpr5ua.apps.googleusercontent.com",
-      iosClientId: "119510705158-auh7kbc1uot14hsd1q0qek4daa8h4v8n.apps.googleusercontent.com",
-      iosBundleId: "eu.netmobiel.frontendApp",
-      // appGroupId: "",
-    )
-  );
+  await Firebase.initializeApp();
+
   /// Update the iOS foreground notification presentation options to allow
   /// heads up notifications.
   // print("FirebaseMessaging.instance.requestPermission");
-  NotificationSettings settings = await FirebaseMessaging.instance
-      .requestPermission(
+  NotificationSettings settings =
+      await FirebaseMessaging.instance.requestPermission(
     alert: true,
     badge: true,
     sound: true,
@@ -49,8 +57,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: !production,
+      title: 'Netmobiel',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -70,10 +78,11 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   String _fcmToken = "";
+  WebViewController? _controller;
   final String _baseUrl = production ? PROD_BASE_URL : DEV_BASE_URL;
-  // final String _baseUrl = DEV_BASE_URL;
   final telephonePrefix = 'tel:';
   String _userAgent = 'Flutter,';
+  bool _pageFinished = false;
 
   Future<void> setupInteractedMessage() async {
     // Get any messages which caused the application to open from
@@ -81,12 +90,12 @@ class _HomeState extends State<Home> {
     // print("setupInteractedMessage");
     try {
       RemoteMessage? initialMessage =
-      await FirebaseMessaging.instance.getInitialMessage();
+          await FirebaseMessaging.instance.getInitialMessage();
 
       // If the message also contains a data property with a "type" of "chat",
       // navigate to a chat screen
-      // print("Got initial message");
       if (initialMessage != null) {
+        // print("Got initial message");
         handleInitialMessage(initialMessage);
       }
 
@@ -107,14 +116,18 @@ class _HomeState extends State<Home> {
       // Use the Hybrid composition mode, the virtual display has keyboard problems
       // like keyboard is not going away when the focus has gone away.
       WebView.platform = SurfaceAndroidWebView();
-
     }
     try {
-      setupInteractedMessage().then((value) =>
-          print("Interacted message setup done"));
-      FirebaseMessaging.instance.getToken()
+      setupInteractedMessage()
+          .catchError((error) {
+        print(error.toString());
+      });
+      FirebaseMessaging.instance
+          .getToken()
           .then((token) => saveToken(token))
-          .catchError((error) => print(error.toString()));
+          .catchError((error) {
+            print(error.toString());
+          });
       // Any time the token refreshes, store this in the database too.
       FirebaseMessaging.instance.onTokenRefresh.listen(saveToken);
       // print("Setup token listener");
@@ -134,23 +147,39 @@ class _HomeState extends State<Home> {
     });
   }
 
+  // void reload() {
+  //   setState(() {
+  //     _pageFinished = false;
+  //   });
+  //   if (_controller == null) {
+  //     print('Controller is still null!');
+  //   } else {
+  //     _controller!.reload();
+  //   }
+  // }
+
   void handleInitialMessage(RemoteMessage message) {
     // Should do some navigation here
-    if (message.data != null) {
-      print('MSG Data: ${message.data}');
-    }
-    if (message.notification != null) {
-      print('MSG Notification: ${message.notification}');
+    // print('MSG IN Data: ${message.data}');
+    // if (message.notification != null) {
+    //   print('MSG IN Notification: ${message.notification!.title}: ${message.notification!.body}');
+    // }
+    // We do not use the mechanism with Javascript. At the time of initial message the application
+    // might not yet completely loaded and up and running. Instead, do a reload of the url.
+    // dispatchNetmobielInitialMessage(message.data['messageRef']);
+    if (_controller == null) {
+      print('Controller is still null!');
+    } else {
+      _controller!.loadUrl('$_baseUrl?msgId=${message.data["messageRef"]}');
     }
   }
 
   void handleForegroundMessage(RemoteMessage message) {
-    if (message.data != null) {
-      print('MSG FG Data: ${message.data}');
-    }
-    if (message.notification != null) {
-      print('MSG FG Notification: ${message.notification}');
-    }
+    // print('MSG FG Data: ${message.data}');
+    // if (message.notification != null) {
+    //   print('MSG FG Notification: ${message.notification!.title}: ${message.notification!.body}');
+    // }
+    dispatchNetmobielPushMessage(message.data['messageRef'], message.notification!.title, message.notification!.body);
   }
 
   void buildUserAgentString() async {
@@ -180,21 +209,75 @@ class _HomeState extends State<Home> {
     }
   }
 
+  void publishNetmobielResponse() {
+    if (_controller == null) {
+      print('Controller is still null!');
+    } else {
+      _controller!.runJavascript('setNetmobielFcmToken("$_fcmToken")')
+          .catchError((error) {
+        print('Got error: $error');
+      });
+    }
+  }
+
+  // void dispatchNetmobielInitialMessage(String msgId) {
+  //   if (_controller == null) {
+  //     print('Controller is still null!');
+  //   } else {
+  //     String script = 'dispatchNetmobielInitialMessage("$msgId")';
+  //     _controller!.runJavascript(script)
+  //         .catchError((error) {
+  //       print('Got error: $error');
+  //     });
+  //   }
+  // }
+
+  void dispatchNetmobielPushMessage(String msgId, String? title, String? body) {
+    if (_controller == null) {
+      print('Controller is still null!');
+    } else {
+      // Encode the strings to prevent issues with javascript syntax and injection issues
+      final titleEnc = title == null ? null : Uri.encodeComponent(title);
+      final bodyEnc = body == null ? null : Uri.encodeComponent(body);
+      String script = 'dispatchNetmobielPushMessage("$msgId", "$titleEnc", "$bodyEnc")';
+      // print('Run script: $script');
+      _controller!.runJavascript(script)
+          .catchError((error) {
+        print('Got error: $error');
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
-    final String url = _fcmToken.isEmpty ? _baseUrl : "$_baseUrl?fcm=$_fcmToken";
-    return Scaffold(
-        body: SafeArea(child: Column(children: [
-          Expanded(
-              child: WebView(
-                  initialUrl: url,
-                  javascriptMode: JavascriptMode.unrestricted,
-                  debuggingEnabled: true,
-                  userAgent: _userAgent,
-              )
-          )
-        ])
-      )
+    final view = WebView(
+      initialUrl: _baseUrl,
+      javascriptMode: JavascriptMode.unrestricted,
+      javascriptChannels: {
+        _requestChannel(context)
+      },
+      debuggingEnabled: true,
+      userAgent: _userAgent,
+      onWebViewCreated: (WebViewController ctrl) {
+        // print('Webview is created');
+        _controller = ctrl;
+      },
+      onPageFinished: (url) {
+        // print("Page loading is done");
+        _pageFinished = true;
+      },
     );
+    // print('UserAgent = ${view.userAgent}, url = ${view.initialUrl}');
+    return Scaffold(
+        body: SafeArea(child: Column(children: [Expanded(child: view)])));
   }
+
+  JavascriptChannel _requestChannel(BuildContext context) {
+    return JavascriptChannel(
+        name: 'NetmobielAppRequest',
+        onMessageReceived: (JavascriptMessage message) {
+          // print('Got message: ${message.message}');
+          publishNetmobielResponse();
+        });
+  }
+
 }
