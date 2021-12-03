@@ -7,7 +7,7 @@
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- usesCleartextTraffic is for easier testing on localhost, do not enable for production -->
+    <!-- usesCleartextTraffic is for easier testing on localhost, DO NOT ENABLE FOR PRODUCTION -->
     <application
         android:usesCleartextTraffic="true"
         android:label="@string/app_name"

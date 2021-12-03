@@ -31,12 +31,10 @@ const bool production = false;
 void main() async {
   // FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   WidgetsFlutterBinding.ensureInitialized();
-  // print("Firebase.initializeApp");
   await Firebase.initializeApp();
 
   /// Update the iOS foreground notification presentation options to allow
   /// heads up notifications.
-  // print("FirebaseMessaging.instance.requestPermission");
   // ignore: unused_local_variable
   NotificationSettings settings =
       await FirebaseMessaging.instance.requestPermission(
@@ -55,7 +53,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: !production,
+      // Show a debug banner as hint that this app is for research purposes
+      debugShowCheckedModeBanner: true,
       title: 'Netmobiel',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -84,7 +83,6 @@ class _HomeState extends State<Home> {
   Future<void> setupInteractedMessage() async {
     // Get any messages which caused the application to open from
     // a terminated state.
-    // print("setupInteractedMessage");
     try {
       RemoteMessage? initialMessage =
           await FirebaseMessaging.instance.getInitialMessage();
@@ -92,14 +90,12 @@ class _HomeState extends State<Home> {
       // If the message also contains a data property with a "type" of "chat",
       // navigate to a chat screen
       if (initialMessage != null) {
-        // print("Got initial message");
         handleInitialMessage(initialMessage);
       }
 
       // Also handle any interaction when the app is in the background via a
       // Stream listener
       FirebaseMessaging.onMessageOpenedApp.listen(handleInitialMessage);
-      // print("Setup listener initial message");
     } catch (e) {
       print(e);
     }
@@ -127,9 +123,7 @@ class _HomeState extends State<Home> {
           });
       // Any time the token refreshes, store this in the database too.
       FirebaseMessaging.instance.onTokenRefresh.listen(saveToken);
-      // print("Setup token listener");
       FirebaseMessaging.onMessage.listen(handleForegroundMessage);
-      // print("Setup foreground listener");
     } catch (e) {
       print(e);
     }
@@ -137,23 +131,11 @@ class _HomeState extends State<Home> {
   }
 
   void saveToken(String? token) {
-    // print("Save token: ${token}");
     token ??= '';
     setState(() {
       _fcmToken = token!;
     });
   }
-
-  // void reload() {
-  //   setState(() {
-  //     _pageFinished = false;
-  //   });
-  //   if (_controller == null) {
-  //     print('Controller is still null!');
-  //   } else {
-  //     _controller!.reload();
-  //   }
-  // }
 
   void handleInitialMessage(RemoteMessage message) {
     // Should do some navigation here
@@ -186,7 +168,6 @@ class _HomeState extends State<Home> {
       var sdkInt = androidInfo.version.sdkInt;
       var manufacturer = androidInfo.manufacturer;
       var model = androidInfo.model;
-      // print('Android $release (SDK $sdkInt), $manufacturer $model');
       setState(() {
         _userAgent =
             'Flutter - Android $release (SDK $sdkInt), $manufacturer $model';
@@ -198,42 +179,38 @@ class _HomeState extends State<Home> {
       var version = iosInfo.systemVersion;
       var name = iosInfo.name;
       var model = iosInfo.model;
-      // print('$systemName $version, $name $model');
-      // iOS 13.1, iPhone 11 Pro Max iPhone
       setState(() {
         _userAgent = 'Flutter - $systemName $version, $name $model';
       });
     }
   }
 
-  void publishNetmobielResponse() {
+  JavascriptChannel _requestChannel(BuildContext context) {
+    return JavascriptChannel(
+        name: 'NetmobielAppRequest',
+        onMessageReceived: (JavascriptMessage message) {
+          publishNetmobielResponse(message.message);
+        });
+  }
+
+  void publishNetmobielResponse(String message) {
     if (_controller == null) {
       print('Controller is still null!');
-    } else {
+    } else if (message == 'fcmToken') {
       _controller!.runJavascript('setNetmobielFcmToken("$_fcmToken")')
           .catchError((error) {
         print('Got error: $error');
       });
+    } else {
+      print('Do not understand request: $message');
     }
   }
-
-  // void dispatchNetmobielInitialMessage(String msgId) {
-  //   if (_controller == null) {
-  //     print('Controller is still null!');
-  //   } else {
-  //     String script = 'dispatchNetmobielInitialMessage("$msgId")';
-  //     _controller!.runJavascript(script)
-  //         .catchError((error) {
-  //       print('Got error: $error');
-  //     });
-  //   }
-  // }
 
   void dispatchNetmobielPushMessage(String msgId, String? title, String? body) {
     if (_controller == null) {
       print('Controller is still null!');
     } else {
-      // Encode the strings to prevent issues with javascript syntax and injection issues
+      // Encode the strings to prevent issues with javascript syntax and clever injection
       final titleEnc = title == null ? null : Uri.encodeComponent(title);
       final bodyEnc = body == null ? null : Uri.encodeComponent(body);
       String script = 'dispatchNetmobielPushMessage("$msgId", "$titleEnc", "$bodyEnc")';
@@ -255,22 +232,12 @@ class _HomeState extends State<Home> {
       debuggingEnabled: true,
       userAgent: _userAgent,
       onWebViewCreated: (WebViewController ctrl) {
-        // print('Webview is created');
         _controller = ctrl;
       },
     );
     // print('UserAgent = ${view.userAgent}, url = ${view.initialUrl}');
     return Scaffold(
         body: SafeArea(child: Column(children: [Expanded(child: view)])));
-  }
-
-  JavascriptChannel _requestChannel(BuildContext context) {
-    return JavascriptChannel(
-        name: 'NetmobielAppRequest',
-        onMessageReceived: (JavascriptMessage message) {
-          // print('Got message: ${message.message}');
-          publishNetmobielResponse();
-        });
   }
 
 }
