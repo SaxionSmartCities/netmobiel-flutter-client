@@ -9,7 +9,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 const String prodBaseUrl = 'https://app.netmobiel.eu';
 const String devBaseUrl = 'http://192.168.0.15:8081/';
-const bool production = false;
+const bool production = true;
 
 /// If you want to do something with background messages, enable the following
 /// code. As a background service, it is not possible to interact with the
