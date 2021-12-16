@@ -54,7 +54,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       // Show a debug banner as hint that this app is for research purposes
-      debugShowCheckedModeBanner: true,
+      debugShowCheckedModeBanner: false,
       title: 'Netmobiel',
       theme: ThemeData(
         primarySwatch: Colors.blue,
