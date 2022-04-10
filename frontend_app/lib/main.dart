@@ -5,11 +5,14 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 const String prodBaseUrl = 'https://app.netmobiel.eu';
-const String devBaseUrl = 'http://192.168.0.15:8081/';
-const bool production = true;
+const String devBaseUrl = 'http://192.168.0.15:8081';
+const String keycloakUrl = 'https://keycloak.actmedialab.nl/auth/realms/netmobiel/';
+const bool production = false;
 
 /// If you want to do something with background messages, enable the following
 /// code. As a background service, it is not possible to interact with the
@@ -46,6 +49,11 @@ void main() async {
   runApp(const MyApp());
 }
 
+void devlog(String msg) {
+  var now = DateTime.now();
+  print('${now.toIso8601String()} ${msg}');
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -77,8 +85,14 @@ class _HomeState extends State<Home> {
   String _fcmToken = '';
   WebViewController? _controller;
   final String _baseUrl = production ? prodBaseUrl : devBaseUrl;
-  final telephonePrefix = 'tel:';
-  String _userAgent = 'Flutter,';
+  String _userAgent = 'Netmobiel';
+  PackageInfo _packageInfo = PackageInfo(
+    appName: 'Unknown',
+    packageName: 'Unknown',
+    version: 'Unknown',
+    buildNumber: 'Unknown',
+    buildSignature: 'Unknown',
+  );
 
   Future<void> setupInteractedMessage() async {
     // Get any messages which caused the application to open from
@@ -124,6 +138,7 @@ class _HomeState extends State<Home> {
       // Any time the token refreshes, store this in the database too.
       FirebaseMessaging.instance.onTokenRefresh.listen(saveToken);
       FirebaseMessaging.onMessage.listen(handleForegroundMessage);
+      _initPackageInfo();
     } catch (e) {
       print(e);
     }
@@ -161,7 +176,16 @@ class _HomeState extends State<Home> {
     dispatchNetmobielPushMessage(message.data['messageRef'], message.notification!.title, message.notification!.body);
   }
 
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _packageInfo = info;
+    });
+  }
+
   void buildUserAgentString() async {
+    var appName = _packageInfo.appName;
+    var version = _packageInfo.version;
     if (Platform.isAndroid) {
       var androidInfo = await DeviceInfoPlugin().androidInfo;
       var release = androidInfo.version.release;
@@ -170,7 +194,7 @@ class _HomeState extends State<Home> {
       var model = androidInfo.model;
       setState(() {
         _userAgent =
-            'Flutter - Android $release (SDK $sdkInt), $manufacturer $model';
+            '$appName $version - Android $release (SDK $sdkInt), $manufacturer $model';
       });
       // Android 9 (SDK 28), Xiaomi Redmi Note 7
     } else if (Platform.isIOS) {
@@ -180,7 +204,7 @@ class _HomeState extends State<Home> {
       var name = iosInfo.name;
       var model = iosInfo.model;
       setState(() {
-        _userAgent = 'Flutter - $systemName $version, $name $model';
+        _userAgent = '$appName $version - $systemName $version, $name $model';
       });
     }
   }
@@ -221,6 +245,26 @@ class _HomeState extends State<Home> {
       });
     }
   }
+  Future<NavigationDecision> getNavigationDelegate(NavigationRequest request) async {
+    if (request.url.startsWith(_baseUrl) || request.url.startsWith(keycloakUrl)) {
+      devlog('Launch in app (main: ${request.isForMainFrame}): ${request.url}');
+      return NavigationDecision.navigate;
+    } else {
+      devlog('Launch external (main: ${request.isForMainFrame}): ${request.url}');
+      if (await canLaunch(request.url)) {
+        if (!await launch(request.url, forceSafariVC: false,
+            forceWebView: false,
+            enableJavaScript: true)) {
+          devlog('Could not launch ${request.url}');
+        }
+      } else {
+        devlog('Could not launch ${request.url}');
+        throw 'Could not launch ${request.url}';
+      }
+      return NavigationDecision.prevent;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final view = WebView(
@@ -229,10 +273,17 @@ class _HomeState extends State<Home> {
       javascriptChannels: {
         _requestChannel(context)
       },
-      debuggingEnabled: true,
+      debuggingEnabled: !production,
       userAgent: _userAgent,
       onWebViewCreated: (WebViewController ctrl) {
         _controller = ctrl;
+      },
+      navigationDelegate: getNavigationDelegate,
+      onPageStarted: (String url) {
+        devlog('Page started loading: $url');
+      },
+      onPageFinished: (String url) {
+        devlog('Page finished loading: $url');
       },
     );
     // print('UserAgent = ${view.userAgent}, url = ${view.initialUrl}');
