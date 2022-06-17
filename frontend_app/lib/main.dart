@@ -5,14 +5,14 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_webview_pro/webview_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
-const String prodBaseUrl = 'https://app.netmobiel.eu';
-const String devBaseUrl = 'http://192.168.0.15:8081';
+const String prodBaseUrl = 'https://app.netmobiel.eu/';
+const String devBaseUrl = 'http://192.168.0.15:8081/';
 const String keycloakUrl = 'https://keycloak.actmedialab.nl/auth/realms/netmobiel/';
-const bool production = false;
+const bool production = true;
 
 /// If you want to do something with background messages, enable the following
 /// code. As a background service, it is not possible to interact with the
@@ -51,7 +51,7 @@ void main() async {
 
 void devlog(String msg) {
   var now = DateTime.now();
-  print('${now.toIso8601String()} ${msg}');
+  print('${now.toIso8601String()} $msg');
 }
 
 class MyApp extends StatelessWidget {
@@ -83,6 +83,8 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   String _fcmToken = '';
+  bool _canUpload = false;
+  bool _canHandleExternalUrl = false;
   WebViewController? _controller;
   final String _baseUrl = production ? prodBaseUrl : devBaseUrl;
   String _userAgent = 'Netmobiel';
@@ -160,12 +162,13 @@ class _HomeState extends State<Home> {
     // }
     // We do not use the mechanism with Javascript. At the time of initial message the application
     // might not yet completely loaded and up and running. Instead, do a reload of the url.
-    // dispatchNetmobielInitialMessage(message.data['messageRef']);
-    if (_controller == null) {
-      print('Controller is still null!');
-    } else {
-      _controller!.loadUrl('$_baseUrl?msgId=${message.data["messageRef"]}');
-    }
+    // Hmm, may be still better simply push the message. Not a real issue if missed and better performance.
+    dispatchNetmobielPushMessage(message.data['messageRef'], message.notification!.title, message.notification!.body);
+    // if (_controller == null) {
+    //   print('Controller is still null!');
+    // } else {
+    //   _controller!.loadUrl('$_baseUrl?msgId=${message.data["messageRef"]}');
+    // }
   }
 
   void handleForegroundMessage(RemoteMessage message) {
@@ -185,7 +188,7 @@ class _HomeState extends State<Home> {
 
   void buildUserAgentString() async {
     var appName = _packageInfo.appName;
-    var version = _packageInfo.version;
+    var appVersion = _packageInfo.version;
     if (Platform.isAndroid) {
       var androidInfo = await DeviceInfoPlugin().androidInfo;
       var release = androidInfo.version.release;
@@ -194,9 +197,11 @@ class _HomeState extends State<Home> {
       var model = androidInfo.model;
       setState(() {
         _userAgent =
-            '$appName $version - Android $release (SDK $sdkInt), $manufacturer $model';
+            'Flutter $appName $appVersion - Android $release (SDK $sdkInt), $manufacturer $model';
+        _canUpload = true;
+        _canHandleExternalUrl = false;
       });
-      // Android 9 (SDK 28), Xiaomi Redmi Note 7
+      // UserAgent Flutter <appName> <appVersion> - Android 10 (SDK 29), HMD Global Nokia 9
     } else if (Platform.isIOS) {
       var iosInfo = await DeviceInfoPlugin().iosInfo;
       var systemName = iosInfo.systemName;
@@ -204,7 +209,9 @@ class _HomeState extends State<Home> {
       var name = iosInfo.name;
       var model = iosInfo.model;
       setState(() {
-        _userAgent = '$appName $version - $systemName $version, $name $model';
+        _userAgent = 'Flutter $appName $appVersion - $systemName $version, $name $model';
+        _canUpload = true;
+        _canHandleExternalUrl = false;
       });
     }
   }
@@ -222,6 +229,11 @@ class _HomeState extends State<Home> {
       print('Controller is still null!');
     } else if (message == 'fcmToken') {
       _controller!.runJavascript('setNetmobielFcmToken("$_fcmToken")')
+          .catchError((error) {
+        print('Got error: $error');
+      });
+    } else if (message == 'capabilities') {
+      _controller!.runJavascript('setNetmobielCapabilities("$_canUpload", "$_canHandleExternalUrl")')
           .catchError((error) {
         print('Got error: $error');
       });
@@ -251,10 +263,8 @@ class _HomeState extends State<Home> {
       return NavigationDecision.navigate;
     } else {
       devlog('Launch external (main: ${request.isForMainFrame}): ${request.url}');
-      if (await canLaunch(request.url)) {
-        if (!await launch(request.url, forceSafariVC: false,
-            forceWebView: false,
-            enableJavaScript: true)) {
+      if (await canLaunchUrlString(request.url)) {
+        if (!await launchUrlString(request.url)) {
           devlog('Could not launch ${request.url}');
         }
       } else {
@@ -278,7 +288,7 @@ class _HomeState extends State<Home> {
       onWebViewCreated: (WebViewController ctrl) {
         _controller = ctrl;
       },
-      navigationDelegate: getNavigationDelegate,
+      //navigationDelegate: getNavigationDelegate,
       onPageStarted: (String url) {
         devlog('Page started loading: $url');
       },
