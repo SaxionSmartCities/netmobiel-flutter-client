@@ -233,7 +233,8 @@ class _HomeState extends State<Home> {
         print('Got error: $error');
       });
     } else if (message == 'capabilities') {
-      _controller!.runJavascript('setNetmobielCapabilities("$_canUpload", "$_canHandleExternalUrl")')
+      // Be careful to pass booleans, not strings!
+      _controller!.runJavascript('setNetmobielCapabilities($_canUpload, $_canHandleExternalUrl)')
           .catchError((error) {
         print('Got error: $error');
       });
@@ -288,7 +289,7 @@ class _HomeState extends State<Home> {
       onWebViewCreated: (WebViewController ctrl) {
         _controller = ctrl;
       },
-      //navigationDelegate: getNavigationDelegate,
+      navigationDelegate: _canHandleExternalUrl ? getNavigationDelegate : null,
       onPageStarted: (String url) {
         devlog('Page started loading: $url');
       },
