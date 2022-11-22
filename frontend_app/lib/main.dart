@@ -102,7 +102,6 @@ class _HomeState extends State<Home> {
     try {
       RemoteMessage? initialMessage =
           await FirebaseMessaging.instance.getInitialMessage();
-
       // If the message also contains a data property with a "type" of "chat",
       // navigate to a chat screen
       if (initialMessage != null) {
