@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Netmobiel</string>
+    <string name="title_activity_main">Netmobiel</string>
+    <string name="default_notification_channel_id">eu.netmobiel.frontendapp.notification</string>
+</resources>
