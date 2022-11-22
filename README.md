@@ -1,5 +1,5 @@
 # netmobiel-flutter-client
-See [Netmobiel Front-end Wrapper](frontend_app) more info.
+See [Netmobiel Front-end Wrapper](frontend_app) for more info.
 
 # Set up Android packaging
 
